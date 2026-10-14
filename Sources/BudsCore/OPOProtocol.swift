@@ -255,6 +255,7 @@ public enum OPOParse {
         case 0x81:
             // Response frames to queries: prefer the "set-like" tail marker:
             // ... 03 00 01 01 <MODE>
+            guard bytes.count >= 11 else { return nil }
             for i in 6..<(bytes.count - 4) {
                 if bytes[i] == 0x03, bytes[i + 1] == 0x00, bytes[i + 2] == 0x01, bytes[i + 3] == 0x01 {
                     return bytes[i + 4]

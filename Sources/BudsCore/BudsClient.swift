@@ -406,8 +406,8 @@ public final class BudsClientImpl: NSObject, BudsClient {
                         return
                     }
                     let msg = (error as? UserFacingError)?.message ?? String(describing: error)
-                    if attempt <= op.maxRetries + 1 {
-                        self.emit(.operation(OperationEvent(id: opId, kind: op.kind, phase: .running(step: "Retrying (\(attempt-1))"))))
+                    if attempt <= op.maxRetries {
+                        self.emit(.operation(OperationEvent(id: opId, kind: op.kind, phase: .running(step: "Retrying (\(attempt))"))))
                         try? await Task.sleep(for: .milliseconds(250))
                         continue
                     }
@@ -700,7 +700,8 @@ extension BudsClientImpl: @preconcurrency CBCentralManagerDelegate, @preconcurre
                                didDiscover peripheral: CBPeripheral,
                                advertisementData: [String: Any],
                                rssi RSSI: NSNumber) {
-        guard let name = peripheral.name else { return }
+        let name = peripheral.name ?? (advertisementData[CBAdvertisementDataLocalNameKey] as? String)
+        guard let name else { return }
         if name.contains("Nord Buds") || name.contains("OnePlus") {
             central.stopScan()
             self.peripheral = peripheral
@@ -711,6 +712,8 @@ extension BudsClientImpl: @preconcurrency CBCentralManagerDelegate, @preconcurre
     }
 
     public func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        reconnectTask?.cancel()
+        reconnectTask = nil
         connectionState = .discovering(name: peripheral.name)
         authState = .notAuthenticated
         write079A = nil
@@ -774,8 +777,11 @@ extension BudsClientImpl: @preconcurrency CBCentralManagerDelegate, @preconcurre
         // If we start sending queries before 0200079A notifications are enabled, we can miss
         // the response and time out even though the buds replied.
         if write079A != nil, notify079A != nil {
-            connectionState = .connected(name: peripheral.name)
-            didInitialRefreshAfterConnect = true
+            let targetState: ConnectionState = .connected(name: peripheral.name)
+            if connectionState != targetState {
+                connectionState = targetState
+                didInitialRefreshAfterConnect = true
+            }
         }
     }
 

@@ -86,6 +86,16 @@ assert(b?.totalWeightedPercent == 64, "Battery weighted total percent")
 let ancPush = [UInt8](arrayLiteral: 0xAA, 0x0B, 0x00, 0x00, 0x04, 0x02, 0x10, 0x04, 0x00, 0x03, 0x01, 0x01, 0x10)
 assert(OPOParse.parseANCModeByte(ancPush) == 0x10, "ANC push returns raw last byte")
 
+// Short ANC response packets must not crash (range bounds safety)
+let shortAncResponse: [UInt8] = [0xAA, 0x05, 0x00, 0x00, 0x04, 0x81, 0x00, 0x00]
+assert(OPOParse.parseANCModeByte(shortAncResponse) == nil, "Short ANC response returns nil without crashing")
+let nineByteAncResponse: [UInt8] = [0xAA, 0x06, 0x00, 0x00, 0x04, 0x81, 0x00, 0x00, 0x00]
+assert(OPOParse.parseANCModeByte(nineByteAncResponse) == nil, "9-byte ANC response returns nil without crashing")
+let tenByteAncResponse: [UInt8] = [0xAA, 0x07, 0x00, 0x00, 0x04, 0x81, 0x03, 0x00, 0x01, 0x01]
+assert(OPOParse.parseANCModeByte(tenByteAncResponse) == nil, "10-byte ANC response returns nil without crashing")
+let validAncResponse: [UInt8] = [0xAA, 0x08, 0x00, 0x00, 0x04, 0x81, 0x03, 0x00, 0x01, 0x01, 0x02]
+assert(OPOParse.parseANCModeByte(validAncResponse) == 0x02, "11-byte valid ANC response returns mode byte")
+
 // EQ table parse fixture (from your capture): CAT=0x05 SUB=0x81 CMD=0x2B, ASCII CSV triplets.
 let eq = [UInt8]([
     0xAA, 0x50, 0x00, 0x00, 0x05, 0x81, 0x2B, 0x49, 0x00, 0x00, 0x09,
