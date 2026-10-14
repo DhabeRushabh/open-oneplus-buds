@@ -11,6 +11,7 @@ struct PopoverRootView: View {
                 HeaderCardView()
                 ANCCardView()
                 BatteryCardView()
+                HighFidelityAudioCardView()
                 FooterView()
             }
         }
@@ -226,6 +227,54 @@ private struct BatteryCardView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct HighFidelityAudioCardView: View {
+    @EnvironmentObject var model: AppModel
+
+    var body: some View {
+        GlassCard {
+            HStack(spacing: 12) {
+                Image(systemName: model.forceOutputOnly ? "waveform" : "headphones")
+                    .renderingMode(.template)
+                    .symbolRenderingMode(.hierarchical)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(model.forceOutputOnly ? Color.accentColor : Color.secondary)
+                    .frame(width: 24)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("High-Fidelity Audio")
+                        .font(Typography.sectionHeader)
+                    Text(subtitleText)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                Toggle("High-Fidelity Audio", isOn: Binding(
+                    get: { model.forceOutputOnly },
+                    set: { model.setForceOutputOnly($0) }
+                ))
+                .toggleStyle(.switch)
+                .labelsHidden()
+                .accessibilityLabel("High-Fidelity Audio")
+                .accessibilityValue(model.forceOutputOnly ? "Enabled" : "Disabled")
+                .accessibilityHint("Preserves stereo audio quality by routing microphone input to the Mac")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .help("Bluetooth bandwidth limitations drop audio to 16kHz mono whenever earbuds microphones are active. Enabling this keeps your earbuds in full-fidelity stereo by routing input to your Mac's microphone.")
+    }
+
+    private var subtitleText: String {
+        if model.forceOutputOnly {
+            return "Stereo output preserved · Input routed to Mac"
+        } else {
+            return "Standard mode · Earbuds mic may reduce quality"
+        }
     }
 }
 

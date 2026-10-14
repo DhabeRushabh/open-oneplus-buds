@@ -21,6 +21,9 @@ final class AppModel: ObservableObject {
     @Published var lastOperation: OperationEvent?
     @Published var lastError: String?
 
+    @Published var forceOutputOnly: Bool = false
+    private static let forceOutputOnlyKey = "buds.forceOutputOnly"
+
     static let lowBatteryThreshold = 20
     private static let caseCachePercentKey = "buds.caseBatteryPercent"
     private static let caseCacheTimestampKey = "buds.caseBatteryTimestamp"
@@ -29,6 +32,12 @@ final class AppModel: ObservableObject {
     init(client: BudsClient = BudsClientImpl()) {
         self.client = client
         client.start()
+
+        let savedForceOutput = UserDefaults.standard.bool(forKey: Self.forceOutputOnlyKey)
+        self.forceOutputOnly = savedForceOutput
+        if savedForceOutput {
+            AudioDeviceManager.shared.setForceOutputOnly(true)
+        }
 
         eventTask = Task { [weak self] in
             guard let self else { return }
@@ -92,6 +101,12 @@ final class AppModel: ObservableObject {
     func setANC(_ mode: ANCMode) {
         lastError = nil
         client.setANC(mode)
+    }
+
+    func setForceOutputOnly(_ enabled: Bool) {
+        forceOutputOnly = enabled
+        UserDefaults.standard.set(enabled, forKey: Self.forceOutputOnlyKey)
+        AudioDeviceManager.shared.setForceOutputOnly(enabled)
     }
 
     func refreshBattery() {
@@ -166,6 +181,9 @@ final class AppModel: ObservableObject {
             connection = s
             if case .connected = s {
                 lastError = nil
+                if forceOutputOnly {
+                    AudioDeviceManager.shared.enforceNow()
+                }
             }
             // New/transitioning connection state: drop ANC so we don't display stale mode.
             switch s {

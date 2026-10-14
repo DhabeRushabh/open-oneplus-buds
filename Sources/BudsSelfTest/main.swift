@@ -112,4 +112,16 @@ assert(e?.presets.count == 3, "EQ presets count")
 assert(e?.presets.first(where: { $0.id == 1 })?.bands.count == 3, "EQ preset 1 band count")
 assert(e?.presets.first(where: { $0.id == 3 })?.bands.first(where: { $0.id == 2 })?.value == 101, "EQ preset 3 band 2 value")
 
+// AudioDeviceManager sanity tests
+let defOutput = AudioDeviceManager.getDefaultOutputDeviceID()
+assert(defOutput != nil, "Default output device lookup should succeed on macOS")
+let defInput = AudioDeviceManager.getDefaultInputDeviceID()
+assert(defInput != nil, "Default input device lookup should succeed on macOS")
+_ = AudioDeviceManager.getPreferredInputDeviceID()
+assert(AudioDeviceManager.shared.isEnforced == false, "Initial isEnforced is false")
+AudioDeviceManager.shared.setForceOutputOnly(true)
+assert(AudioDeviceManager.shared.isEnforced == true, "isEnforced becomes true after setForceOutputOnly(true)")
+AudioDeviceManager.shared.setForceOutputOnly(false)
+assert(AudioDeviceManager.shared.isEnforced == false, "isEnforced becomes false after setForceOutputOnly(false)")
+
 print("[OK] BudsSelfTest passed")
